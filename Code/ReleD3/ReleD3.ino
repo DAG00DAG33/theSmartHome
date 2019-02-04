@@ -3,7 +3,15 @@
 
 
 // Define NodeMCU D3 pin  connect to LED
-#define LED_PIN 2
+#define LUZ_1 0
+#define LUZ_2 2
+#define BUTTON_1 3
+#define BUTTON_2 1
+
+int luz1;
+int luz2;
+int button1=0;
+int button2=0;
 
 // Update these with values suitable for your network.
 const char* ssid = "MIWIFI_2G_mSdJ";
@@ -20,44 +28,48 @@ int value = 0;
 void setup_wifi() {
   delay(100);
   // We start by connecting to a WiFi network
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  //Serial.print("Connecting to ");
+  //Serial.println(ssid);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
-    Serial.print(".");
+    //Serial.print(".");
   }
   randomSeed(micros());
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  //Serial.println("");
+  //Serial.println("WiFi connected");
+  //Serial.println("IP address: ");
+  //Serial.println(WiFi.localIP());
 }
 
 void callback(char* topic, byte* payload, unsigned int length)
 {
-  Serial.print("Command from MQTT broker is : [");
-  Serial.print(topic);
-  if (strcmp(topic, "led") == 0) {
+  //Serial.print("Command from MQTT broker is : [");
+  //Serial.print(topic);
+  if (strcmp(topic, "luz_1") == 0) {
     int p = (char)payload[0] - '0';
-    // if MQTT comes a 0 turn off LED on D2
-    if (p == 0)
-    {
-      digitalWrite(LED_PIN, LOW);
-      Serial.println(" Turn Off LED! " );
-      Serial.print(p);
+    //Serial.print(p);
+    if (p == 0){
+      digitalWrite(LUZ_1, LOW);
+      luz1=0;
+    }else if (p == 1){
+      digitalWrite(LUZ_1, HIGH);
+      luz1=1;
     }
-    // if MQTT comes a 1, turn on LED on pin D2
-    else if (p == 1)
-    {
-      delay(250);
-      digitalWrite(LED_PIN, HIGH);
-      delay(250);
-      Serial.println(" Turn On LED! " );
+    //Serial.println();
+  }else if (strcmp(topic, "luz_2") == 0) {
+    int p = (char)payload[0] - '0';
+    //Serial.print(p);
+    if (p == 0){
+      digitalWrite(LUZ_2, LOW);
+      luz2=0;
+    }else if (p == 1){
+      digitalWrite(LUZ_2, HIGH);
+      luz2=1;
     }
-    Serial.println();
-  }  
+    //Serial.println();
+  }
 
 } //end callback
 
@@ -65,7 +77,7 @@ void reconnect() {
   // Loop until we're reconnected
   while (!client.connected())
   {
-    Serial.print("Attempting MQTT connection...");
+    //Serial.print("Attempting MQTT connection...");
     // Create a random client ID
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
@@ -76,15 +88,15 @@ void reconnect() {
     if (client.connect("DAG00DAG33", "gmctxgsj", "xqvrR_PofPOG"))
       //if (client.connect(clientId.c_str()))-----------------------------------------------
     {
-      Serial.println("connected");
+      //Serial.println("connected");
       //once connected to MQTT broker, subscribe command if any
       //SUBSCRIBIRSE TOPICS
-      client.subscribe("led");
-      client.subscribe("led/paco");
+      client.subscribe("luz_1");
+      client.subscribe("luz_2");
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      //Serial.print("failed, rc=");
+      //Serial.print(client.state());
+      //Serial.println(" try again in 5 seconds");
       // Wait 6 seconds before retrying
       delay(6000);
     } 
@@ -92,19 +104,48 @@ void reconnect() {
 } //end reconnect()
 
 void setup() {
-  Serial.begin(115200);
+  //Serial.begin(115200);
   setup_wifi();
   //PONER PUERTO
   client.setServer(mqtt_server, 12101);
   client.setCallback(callback);
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
+  pinMode(LUZ_1, OUTPUT);
+  pinMode(LUZ_2, OUTPUT);
+  pinMode(BUTTON_2, INPUT);
+  pinMode(BUTTON_2, INPUT);
+  digitalWrite(LUZ_1, HIGH);
+  digitalWrite(LUZ_2, HIGH);
 }
 
 void loop() {
+
+  
   if (!client.connected()) {
     reconnect();
   }
+  if ((digitalRead(BUTTON_1)==0)&&(button1==1)){
+    if(luz1==1){
+      client.publish("luz_1", "0");
+    }else if(luz1==0){
+      client.publish("luz_1", "1");
+    }
+    button1=0;
+  }
+  if ((digitalRead(BUTTON_2)==0)&&(button2==1)){
+    if(luz2==1){
+      client.publish("luz_2", "0");
+    }else if(luz2==0){
+      client.publish("luz_2", "1");
+    }
+    button2=0;
+  }
+  if(digitalRead(BUTTON_1)==1){
+    button1=1;
+  }
+  if(digitalRead(BUTTON_2)==1){
+    button2=1;
+  }
+  
   client.loop();
 
 }
